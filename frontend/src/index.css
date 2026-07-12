@@ -1,0 +1,31 @@
+@import "tailwindcss";
+@import "tailwindcss/utilities";
+
+@theme {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card-bg);
+  --color-border: var(--border-color);
+}
+
+@layer base {
+  :root {
+    --background: #ffffff;
+    --foreground: #000000;
+    --card-bg: #f3f4f6; /* gray-100 */
+    --border-color: #e5e7eb; /* gray-200 */
+  }
+
+  .dark {
+    --background: #000000;
+    --foreground: #ffffff;
+    --card-bg: #111111;
+    --border-color: #333333;
+  }
+}
+
+body {
+  background-color: var(--background);
+  color: var(--foreground);
+  @apply transition-colors duration-300;
+}
