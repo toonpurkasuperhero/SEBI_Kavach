@@ -98,8 +98,22 @@ const AdminConsole = () => {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="bg-card border border-border rounded-xl p-6">
-          <h3 className="font-bold text-lg mb-4">Recent Escalated Incidents</h3>
-          <div className="space-y-4">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-bold text-lg">SEBI HITL Escalation Queue</h3>
+            <span className="px-2 py-0.5 bg-amber-500/20 text-amber-400 text-xs font-semibold rounded-full border border-amber-500/30">Under Review</span>
+          </div>
+          <p className="text-xs text-foreground/60 mb-3">Media flagged as "Under Review" (confidence 45-75%) on market-moving claims must be approved by SEBI Monitoring Officers before public alert.</p>
+          <div className="space-y-3">
+             <div className="p-3 border border-amber-500/30 rounded-lg bg-amber-500/5 flex items-center justify-between">
+                <div>
+                  <p className="font-bold text-sm text-amber-400">CEO Resignation Video Claim</p>
+                  <p className="text-xs text-foreground/60">Confidence: 68% • Reliance Industries (RELIANCE)</p>
+                </div>
+                <div className="flex space-x-2">
+                  <button onClick={() => alert("Marked Official Real")} className="px-2.5 py-1 bg-green-600 text-white rounded text-xs font-medium hover:bg-green-700">Approve Real</button>
+                  <button onClick={() => alert("Marked Confirmed Deepfake")} className="px-2.5 py-1 bg-red-600 text-white rounded text-xs font-medium hover:bg-red-700">Confirm Fake</button>
+                </div>
+             </div>
              {incidents.length > 0 ? incidents.map((incident) => (
                 <div key={incident.id} className="flex items-center justify-between p-3 border border-border/50 rounded-lg bg-background/50">
                   <div>

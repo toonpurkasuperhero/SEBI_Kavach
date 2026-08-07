@@ -26,8 +26,9 @@ const Layout = () => {
     { name: 'Dashboard', path: '/', roles: ['investor', 'admin'] },
     { name: 'Scam Radar', path: '/radar', roles: ['investor', 'admin'] },
     { name: 'ShieldTrain', path: '/training', roles: ['investor', 'admin'] },
-    { name: 'WhatsApp Bot', path: '/bot', roles: ['investor', 'admin'] },
+    { name: 'Telegram Bot', path: '/bot', roles: ['investor', 'admin'] },
     { name: 'Social Feed', path: '/extension', roles: ['investor', 'admin'] },
+    { name: 'Account Settings', path: '/settings', roles: ['investor', 'admin'] },
     { name: 'Admin Console', path: '/admin', roles: ['admin'] },
   ];
 

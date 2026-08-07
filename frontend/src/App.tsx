@@ -5,8 +5,9 @@ import ScamRadarFeed from './pages/ScamRadarFeed';
 import AdminConsole from './pages/AdminConsole';
 import Login from './pages/Login';
 import ShieldTrain from './pages/ShieldTrain';
-import WhatsAppBotSimulator from './pages/WhatsAppBotSimulator';
+import TelegramBotSimulator from './pages/TelegramBotSimulator';
 import SocialExtensionMock from './pages/SocialExtensionMock';
+import AccountSettings from './pages/AccountSettings';
 import { useAuth } from './context/AuthContext';
 import type { ReactNode } from 'react';
 
@@ -39,12 +40,17 @@ function App() {
         } />
         <Route path="bot" element={
           <ProtectedRoute allowedRoles={['investor', 'admin']}>
-            <WhatsAppBotSimulator />
+            <TelegramBotSimulator />
           </ProtectedRoute>
         } />
         <Route path="extension" element={
           <ProtectedRoute allowedRoles={['investor', 'admin']}>
             <SocialExtensionMock />
+          </ProtectedRoute>
+        } />
+        <Route path="settings" element={
+          <ProtectedRoute allowedRoles={['investor', 'admin']}>
+            <AccountSettings />
           </ProtectedRoute>
         } />
         <Route path="login" element={<Login />} />
