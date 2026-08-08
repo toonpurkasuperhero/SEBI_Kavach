@@ -1,7 +1,11 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from api.routes import verifynet, detectnet, shieldtrain, report, auth, telegram_link
 import os
+
+try:
+    from api.routes import verifynet, detectnet, shieldtrain, report, auth, telegram_link
+except ImportError:
+    from backend.api.routes import verifynet, detectnet, shieldtrain, report, auth, telegram_link
 
 FRONTEND_URL = os.getenv("FRONTEND_URL", "*")
 

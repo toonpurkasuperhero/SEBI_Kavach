@@ -21,7 +21,10 @@ from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
 
-from api.routes.auth import get_current_user, UserProfile, get_supabase
+try:
+    from api.routes.auth import get_current_user, UserProfile, get_supabase
+except ImportError:
+    from backend.api.routes.auth import get_current_user, UserProfile, get_supabase
 
 logger = logging.getLogger("TelegramLink")
 
