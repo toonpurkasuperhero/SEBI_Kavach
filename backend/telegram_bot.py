@@ -422,5 +422,19 @@ def start_telegram_bot_polling():
         logger.info("[Telegram Bot] Bot polling skipped (missing TELEGRAM_BOT_TOKEN).")
 
 
+async def start_telegram_bot_async():
+    app = create_telegram_bot_app()
+    if app:
+        try:
+            logger.info("[Telegram Bot] Initializing and starting async bot polling...")
+            await app.initialize()
+            await app.start()
+            await app.updater.start_polling()
+        except Exception as exc:
+            logger.error("[Telegram Bot] Async start error: %s", exc)
+    else:
+        logger.info("[Telegram Bot] Bot async start skipped (missing TELEGRAM_BOT_TOKEN).")
+
+
 if __name__ == "__main__":
     start_telegram_bot_polling()

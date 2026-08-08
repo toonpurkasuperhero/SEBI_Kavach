@@ -1,6 +1,10 @@
+import asyncio
+import logging
+import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-import os
+
+logger = logging.getLogger("Main")
 
 try:
     from api.routes import verifynet, detectnet, shieldtrain, report, auth, telegram_link
@@ -30,6 +34,18 @@ app.include_router(shieldtrain.router, prefix="/api/v1")
 app.include_router(report.router, prefix="/api/v1")
 app.include_router(auth.router, prefix="/api/v1")
 app.include_router(telegram_link.router, prefix="/api/v1")
+
+@app.on_event("startup")
+async def on_startup():
+    try:
+        try:
+            from telegram_bot import start_telegram_bot_async
+        except ImportError:
+            from backend.telegram_bot import start_telegram_bot_async
+        asyncio.create_task(start_telegram_bot_async())
+        logger.info("[Startup] Telegram Bot background task launched successfully.")
+    except Exception as exc:
+        logger.warning("[Startup] Telegram Bot background launch skipped: %s", exc)
 
 @app.get("/")
 def read_root():
