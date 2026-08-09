@@ -50,13 +50,17 @@ const InvestorDashboard = () => {
         const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000';
 
         try {
+          console.log('[SEBI Kavach] Uploading to:', `${backendUrl}/api/v1/detect/upload`);
           const response = await fetch(`${backendUrl}/api/v1/detect/upload`, {
             method: 'POST',
             body: formData,
           });
 
+          console.log('[SEBI Kavach] Backend response status:', response.status);
+
           if (response.ok) {
             const data = await response.json();
+            console.log('[SEBI Kavach] Backend result:', data);
             setVerdict({
               status: data.risk_level === 'high' ? 'high-risk' : data.risk_level === 'medium' ? 'flagged' : 'verified',
               explanation: data.explanation,
@@ -65,8 +69,12 @@ const InvestorDashboard = () => {
               contentId: selectedFile.name,
             });
             return;
+          } else {
+            const errText = await response.text();
+            console.error('[SEBI Kavach] Backend error response:', errText);
           }
-        } catch {
+        } catch (fetchErr) {
+          console.error('[SEBI Kavach] Fetch failed (backend unreachable?):', fetchErr);
           // Backend not running — fallback to smart filename heuristics
         }
 

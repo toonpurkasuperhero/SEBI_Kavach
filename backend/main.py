@@ -18,11 +18,11 @@ app = FastAPI(
     description="AI-Driven Detection & Authentication Platform for Securities Markets",
 )
 
-# CORS — restrict to frontend domain in production
+# CORS — allow all origins so Railway backend works with any Vercel/localhost URL
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[FRONTEND_URL] if FRONTEND_URL != "*" else ["*"],
-    allow_credentials=True,
+    allow_origins=["*"],
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
