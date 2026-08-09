@@ -95,15 +95,15 @@ async def analyze_uploaded_file(file: UploadFile = File(...)):
                     correlated_flags=[f"pHash Hamming Distance: {dist} (threshold ≤ 6)"]
                 )
 
-            # Tier 2: HuggingFace Vision Transformer (real AI call)
-            logger.info("[DetectNet] Sending image to HuggingFace Vision Transformer...")
+            # Tier 2: AI Vision / Forensic Engine Scan
+            logger.info("[DetectNet] Sending image to AI / Forensic detection engine...")
             res = analyze_image_frame(image)
-            is_fake = res["is_synthetic"]
+            risk_level = res.get("risk_level", "low")
             confidence = res["confidence_score"]
 
-            logger.info("[DetectNet] Image result: is_fake=%s confidence=%.2f", is_fake, confidence)
+            logger.info("[DetectNet] Image result: risk_level=%s confidence=%.2f", risk_level, confidence)
 
-            if is_fake:
+            if risk_level == "high":
                 return DetectionResponse(
                     risk_level="high",
                     trust_category="CONFIRMED_SCAM",
@@ -114,6 +114,19 @@ async def analyze_uploaded_file(file: UploadFile = File(...)):
                         "AI-generated synthetic distortion / boundary artifacts detected",
                         "Spatial frequency anomalies identified",
                         "pHash does not match official SEBI/NSE trust registry"
+                    ]
+                )
+            elif risk_level == "medium":
+                return DetectionResponse(
+                    risk_level="medium",
+                    trust_category="UNREGISTERED_ORIGIN",
+                    confidence_score=confidence,
+                    explanation=f"DHYAN DEIN / UNVERIFIED: {res['explanation']}",
+                    is_hitl_escalated=True,
+                    correlated_flags=[
+                        "Clean digital format or screenshot detected",
+                        "No official cryptographically signed registry match",
+                        "Escalated to SEBI Monitoring Cell (HITL verification)"
                     ]
                 )
             else:
