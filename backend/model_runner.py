@@ -48,7 +48,7 @@ HF_API_BASE = "https://api-inference.huggingface.co/models"
 IMAGE_MODEL = "dima806/deepfake_vs_real_image_detection"
 AUDIO_MODEL = "mo-thecreator/Deepfake-audio-detection"
 
-REQUEST_TIMEOUT = 30
+REQUEST_TIMEOUT = 45
 HF_RETRY_WAIT = 20
 
 
@@ -124,7 +124,23 @@ Respond ONLY with a valid JSON object in this exact format (no markdown, no expl
                 continue
 
             if resp.status_code == 429:
-                raise ModelUnavailableError("Gemini API rate limit reached. Try again in a moment.")
+                wait_secs = 8
+                logger.warning("[ModelRunner] Gemini rate limit (429) on model %s. Waiting %ds...", model_name, wait_secs)
+                time.sleep(wait_secs)
+                # Retry the same model once more
+                try:
+                    with httpx.Client(timeout=REQUEST_TIMEOUT) as client2:
+                        resp2 = client2.post(url, json=payload, headers={"Content-Type": "application/json"})
+                    if resp2.status_code == 200:
+                        resp = resp2  # use the successful retry response
+                    elif resp2.status_code == 429:
+                        last_error = f"Rate limited on {model_name} even after retry"
+                        logger.warning("[ModelRunner] Still rate limited, trying next model...")
+                        continue
+                    else:
+                        resp = resp2
+                except Exception:
+                    pass
 
             if resp.status_code in (401, 403):
                 raise ModelUnavailableError(
