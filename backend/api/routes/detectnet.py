@@ -8,17 +8,17 @@ from typing import List, Optional
 from PIL import Image
 
 try:
-    from model_runner import analyze_text_phishing, analyze_audio_clip, analyze_image_frame
+    from model_runner import analyze_text_phishing, analyze_audio_clip, analyze_image_frame, ModelUnavailableError
     from phash_registry import phash_registry
 except ImportError:
     try:
-        from backend.model_runner import analyze_text_phishing, analyze_audio_clip, analyze_image_frame
+        from backend.model_runner import analyze_text_phishing, analyze_audio_clip, analyze_image_frame, ModelUnavailableError
         from backend.phash_registry import phash_registry
     except ImportError:
         import sys
         from pathlib import Path
         sys.path.append(str(Path(__file__).parent.parent.parent.resolve()))
-        from model_runner import analyze_text_phishing, analyze_audio_clip, analyze_image_frame
+        from model_runner import analyze_text_phishing, analyze_audio_clip, analyze_image_frame, ModelUnavailableError
         from phash_registry import phash_registry
 
 logger = logging.getLogger("DetectNet")
@@ -126,11 +126,21 @@ async def analyze_uploaded_file(file: UploadFile = File(...)):
                     correlated_flags=["Passes HuggingFace AI Deepfake Vision Inspection"]
                 )
 
+        except ModelUnavailableError as e:
+            logger.error("[DetectNet] HF model unavailable for image: %s", e)
+            raise HTTPException(
+                status_code=503,
+                detail=(
+                    f"⚠️ AI MODEL UNAVAILABLE: {str(e)} "
+                    f"The image was NOT analyzed — no result can be trusted. "
+                    f"Configure HF_API_TOKEN in Railway environment variables."
+                )
+            )
         except Exception as e:
             logger.error("[DetectNet] Image analysis failed: %s", e)
             raise HTTPException(
                 status_code=500,
-                detail=f"Image analysis failed: {str(e)}. Check server logs."
+                detail=f"Image analysis error: {str(e)}"
             )
 
     # ── AUDIO / VOICE ──────────────────────────────────────────────────────────
@@ -173,11 +183,21 @@ async def analyze_uploaded_file(file: UploadFile = File(...)):
                     correlated_flags=["Passes HuggingFace Voice Deepfake Inspection (Natural Human Speech)"]
                 )
 
+        except ModelUnavailableError as e:
+            logger.error("[DetectNet] HF model unavailable for audio: %s", e)
+            raise HTTPException(
+                status_code=503,
+                detail=(
+                    f"⚠️ AI MODEL UNAVAILABLE: {str(e)} "
+                    f"The audio was NOT analyzed — no result can be trusted. "
+                    f"Configure HF_API_TOKEN in Railway environment variables."
+                )
+            )
         except Exception as e:
             logger.error("[DetectNet] Audio analysis failed: %s", e)
             raise HTTPException(
                 status_code=500,
-                detail=f"Audio analysis failed: {str(e)}. Check server logs."
+                detail=f"Audio analysis error: {str(e)}"
             )
 
     # ── VIDEO ──────────────────────────────────────────────────────────────────
