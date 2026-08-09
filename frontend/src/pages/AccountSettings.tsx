@@ -184,7 +184,7 @@ const AccountSettings = () => {
           <User className="mr-2 text-blue-500" size={22} />
           Profile Details
         </h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm mb-6">
           <div className="p-4 bg-background border border-border rounded-xl">
             <span className="text-foreground/50 text-xs font-semibold uppercase block mb-1">
               Email Address
@@ -201,6 +201,48 @@ const AccountSettings = () => {
               {profile?.role || 'investor'}
             </span>
           </div>
+        </div>
+
+        {/* Set / Change Password */}
+        <div className="border-t border-border pt-4">
+          <h3 className="text-sm font-bold text-foreground mb-2">Set Account Password</h3>
+          <p className="text-xs text-foreground/60 mb-3">
+            Setting a password allows you to log in directly using Email & Password without needing verification links.
+          </p>
+          <form
+            onSubmit={async (e) => {
+              e.preventDefault();
+              const form = e.currentTarget;
+              const pwInput = form.querySelector<HTMLInputElement>('#new-pw-input');
+              if (!pwInput || pwInput.value.length < 8) {
+                alert('Password must be at least 8 characters.');
+                return;
+              }
+              const { error } = await supabase.auth.updateUser({ password: pwInput.value });
+              if (error) {
+                alert(error.message);
+              } else {
+                alert('Password updated successfully! You can now log in with Email & Password.');
+                pwInput.value = '';
+              }
+            }}
+            className="flex items-center gap-3"
+          >
+            <input
+              id="new-pw-input"
+              type="password"
+              placeholder="Enter new password (min 8 chars)"
+              className="px-4 py-2 bg-background border border-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/40 flex-1 max-w-sm"
+              minLength={8}
+              required
+            />
+            <button
+              type="submit"
+              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl text-xs transition-colors"
+            >
+              Save Password
+            </button>
+          </form>
         </div>
       </div>
 
