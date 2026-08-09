@@ -108,12 +108,12 @@ async def analyze_uploaded_file(file: UploadFile = File(...)):
                     risk_level="high",
                     trust_category="CONFIRMED_SCAM",
                     confidence_score=confidence,
-                    explanation=f"NAKLI / DEEPFAKE ALERT: HuggingFace Vision Transformer (dima806) detected synthetic pixel distortion and facial boundary artifacts ({confidence*100:.0f}% confidence). This image shows signs of AI generation or manipulation.",
+                    explanation=f"NAKLI / DEEPFAKE ALERT: {res['explanation']}",
                     is_hitl_escalated=False,
                     correlated_flags=[
-                        "AI-generated pixel boundary artifacts detected",
-                        "Facial frequency inconsistencies identified",
-                        "pHash does not match any official SEBI/NSE registry"
+                        "AI-generated synthetic distortion / boundary artifacts detected",
+                        "Spatial frequency anomalies identified",
+                        "pHash does not match official SEBI/NSE trust registry"
                     ]
                 )
             else:
@@ -121,9 +121,9 @@ async def analyze_uploaded_file(file: UploadFile = File(...)):
                     risk_level="low",
                     trust_category="VERIFIED",
                     confidence_score=confidence,
-                    explanation=f"ASLI / VERIFIED: HuggingFace Vision Transformer (dima806) found NO synthetic artifacts ({confidence*100:.0f}% authentic confidence). Image pixel analysis shows natural camera capture patterns.",
+                    explanation=f"ASLI / VERIFIED: {res['explanation']}",
                     is_hitl_escalated=False,
-                    correlated_flags=["Passes HuggingFace AI Deepfake Vision Inspection"]
+                    correlated_flags=["Passes Forensic AI Vision & Spatial Frequency Inspection"]
                 )
 
         except ModelUnavailableError as e:
