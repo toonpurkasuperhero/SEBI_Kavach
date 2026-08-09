@@ -37,7 +37,13 @@ class ModelUnavailableError(RuntimeError):
 GEMINI_API_KEY: str = os.getenv("GEMINI_API_KEY", "").strip()
 HF_API_TOKEN: str = os.getenv("HF_API_TOKEN", "").strip()
 
-GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent"
+GEMINI_API_BASE = "https://generativelanguage.googleapis.com/v1beta/models"
+# Try models in order of preference
+GEMINI_MODELS = [
+    "gemini-2.0-flash",
+    "gemini-1.5-flash-latest",
+    "gemini-1.5-flash-8b",
+]
 HF_API_BASE = "https://api-inference.huggingface.co/models"
 IMAGE_MODEL = "dima806/deepfake_vs_real_image_detection"
 AUDIO_MODEL = "mo-thecreator/Deepfake-audio-detection"
@@ -51,9 +57,9 @@ HF_RETRY_WAIT = 20
 # ---------------------------------------------------------------------------
 def _gemini_analyze_image(image_bytes: bytes) -> Dict[str, Any]:
     """
-    Uses Gemini 1.5 Flash Vision to detect AI-generated / deepfake images.
-    Returns structured result dict.
-    Raises ModelUnavailableError if GEMINI_API_KEY is missing or call fails.
+    Uses Gemini Vision to detect AI-generated / deepfake images.
+    Tries multiple model versions until one succeeds.
+    Raises ModelUnavailableError if GEMINI_API_KEY is missing or all models fail.
     """
     if not GEMINI_API_KEY:
         raise ModelUnavailableError(
@@ -103,32 +109,54 @@ Respond ONLY with a valid JSON object in this exact format (no markdown, no expl
         }
     }
 
-    try:
-        with httpx.Client(timeout=REQUEST_TIMEOUT) as client:
-            resp = client.post(
-                f"{GEMINI_API_URL}?key={GEMINI_API_KEY}",
-                json=payload,
-                headers={"Content-Type": "application/json"}
-            )
+    last_error = ""
+    for model_name in GEMINI_MODELS:
+        url = f"{GEMINI_API_BASE}/{model_name}:generateContent?key={GEMINI_API_KEY}"
+        logger.info("[ModelRunner] Trying Gemini model: %s", model_name)
+        try:
+            with httpx.Client(timeout=REQUEST_TIMEOUT) as client:
+                resp = client.post(url, json=payload, headers={"Content-Type": "application/json"})
 
-        if resp.status_code == 200:
+            if resp.status_code == 404:
+                # This model name not available, try next
+                last_error = f"Model '{model_name}' not found (404)"
+                logger.warning("[ModelRunner] %s", last_error)
+                continue
+
+            if resp.status_code == 429:
+                raise ModelUnavailableError("Gemini API rate limit reached. Try again in a moment.")
+
+            if resp.status_code in (401, 403):
+                raise ModelUnavailableError(
+                    f"Gemini API key invalid or unauthorized (HTTP {resp.status_code}). "
+                    "Check your GEMINI_API_KEY in Railway variables."
+                )
+
+            if resp.status_code != 200:
+                last_error = f"HTTP {resp.status_code}: {resp.text[:150]}"
+                logger.warning("[ModelRunner] Gemini %s error: %s", model_name, last_error)
+                continue
+
+            # Success — parse response
             data = resp.json()
             text = data["candidates"][0]["content"]["parts"][0]["text"].strip()
-            logger.info("[ModelRunner] Gemini raw response: %s", text)
+            logger.info("[ModelRunner] Gemini (%s) raw response: %s", model_name, text)
 
             # Strip markdown code fences if present
-            if text.startswith("```"):
-                text = text.split("```")[1]
-                if text.startswith("json"):
-                    text = text[4:]
-            text = text.strip()
+            if "```" in text:
+                parts = text.split("```")
+                for part in parts:
+                    if "{" in part:
+                        text = part.lstrip("json").strip()
+                        break
 
+            text = text.strip()
             result = json.loads(text)
             is_fake = bool(result.get("is_synthetic", False))
             confidence = float(result.get("confidence", 0.75))
             reason = str(result.get("reason", ""))
 
-            logger.info("[ModelRunner] Gemini decision: is_fake=%s confidence=%.2f", is_fake, confidence)
+            logger.info("[ModelRunner] Gemini decision (model=%s): is_fake=%s confidence=%.2f", model_name, is_fake, confidence)
             return {
                 "risk_level": "high" if is_fake else "low",
                 "confidence_score": round(confidence, 2),
@@ -137,22 +165,19 @@ Respond ONLY with a valid JSON object in this exact format (no markdown, no expl
                 "explanation": reason,
             }
 
-        elif resp.status_code == 429:
-            raise ModelUnavailableError("Gemini API rate limit reached (429). Try again in a moment.")
-        elif resp.status_code == 401 or resp.status_code == 403:
-            raise ModelUnavailableError(
-                f"Gemini API key invalid or unauthorized (HTTP {resp.status_code}). "
-                "Check your GEMINI_API_KEY in Railway variables."
-            )
-        else:
-            raise ModelUnavailableError(
-                f"Gemini API returned HTTP {resp.status_code}: {resp.text[:200]}"
-            )
+        except ModelUnavailableError:
+            raise
+        except json.JSONDecodeError as e:
+            last_error = f"Non-JSON response from {model_name}: {e}"
+            logger.warning("[ModelRunner] %s", last_error)
+            continue
+        except httpx.RequestError as e:
+            raise ModelUnavailableError(f"Network error connecting to Gemini API: {e}")
 
-    except json.JSONDecodeError as e:
-        raise ModelUnavailableError(f"Gemini returned non-JSON response: {e}")
-    except httpx.RequestError as e:
-        raise ModelUnavailableError(f"Network error connecting to Gemini API: {e}")
+    raise ModelUnavailableError(
+        f"All Gemini models failed. Last error: {last_error}. "
+        f"Tried: {', '.join(GEMINI_MODELS)}"
+    )
 
 
 # ---------------------------------------------------------------------------
