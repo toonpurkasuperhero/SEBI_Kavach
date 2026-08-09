@@ -37,13 +37,12 @@ class ModelUnavailableError(RuntimeError):
 GEMINI_API_KEY: str = os.getenv("GEMINI_API_KEY", "").strip()
 HF_API_TOKEN: str = os.getenv("HF_API_TOKEN", "").strip()
 
-GEMINI_API_BASE = "https://generativelanguage.googleapis.com/v1beta/models"
-# Standard valid Gemini endpoint model identifiers
-GEMINI_MODELS = [
-    "gemini-1.5-flash",
-    "gemini-1.5-pro",
-    "gemini-2.0-flash-exp",
-    "gemini-1.5-flash-8b-latest",
+# Endpoints to try across v1beta and v1
+GEMINI_ENDPOINTS = [
+    "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent",
+    "https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent",
+    "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent",
+    "https://generativelanguage.googleapis.com/v1/models/gemini-1.5-pro:generateContent",
 ]
 HF_API_BASE = "https://api-inference.huggingface.co/models"
 IMAGE_MODEL = "dima806/deepfake_vs_real_image_detection"
@@ -111,32 +110,29 @@ Respond ONLY with a valid JSON object in this exact format (no markdown, no expl
     }
 
     last_error = ""
-    for model_name in GEMINI_MODELS:
-        url = f"{GEMINI_API_BASE}/{model_name}:generateContent?key={GEMINI_API_KEY}"
-        logger.info("[ModelRunner] Trying Gemini model: %s", model_name)
+    for endpoint_url in GEMINI_ENDPOINTS:
+        url = f"{endpoint_url}?key={GEMINI_API_KEY}"
+        logger.info("[ModelRunner] Trying Gemini endpoint: %s", endpoint_url)
         try:
             with httpx.Client(timeout=REQUEST_TIMEOUT) as client:
                 resp = client.post(url, json=payload, headers={"Content-Type": "application/json"})
 
             if resp.status_code == 404:
-                # This model name not available, try next
-                last_error = f"Model '{model_name}' not found (404)"
+                last_error = f"Endpoint 404: {endpoint_url}"
                 logger.warning("[ModelRunner] %s", last_error)
                 continue
 
             if resp.status_code == 429:
                 wait_secs = 8
-                logger.warning("[ModelRunner] Gemini rate limit (429) on model %s. Waiting %ds...", model_name, wait_secs)
+                logger.warning("[ModelRunner] Gemini rate limit (429) on %s. Waiting %ds...", endpoint_url, wait_secs)
                 time.sleep(wait_secs)
-                # Retry the same model once more
                 try:
                     with httpx.Client(timeout=REQUEST_TIMEOUT) as client2:
                         resp2 = client2.post(url, json=payload, headers={"Content-Type": "application/json"})
                     if resp2.status_code == 200:
-                        resp = resp2  # use the successful retry response
+                        resp = resp2
                     elif resp2.status_code == 429:
-                        last_error = f"Rate limited on {model_name} even after retry"
-                        logger.warning("[ModelRunner] Still rate limited, trying next model...")
+                        last_error = f"Rate limited on {endpoint_url} after retry"
                         continue
                     else:
                         resp = resp2
@@ -150,14 +146,14 @@ Respond ONLY with a valid JSON object in this exact format (no markdown, no expl
                 )
 
             if resp.status_code != 200:
-                last_error = f"HTTP {resp.status_code}: {resp.text[:150]}"
-                logger.warning("[ModelRunner] Gemini %s error: %s", model_name, last_error)
+                last_error = f"HTTP {resp.status_code} on {endpoint_url}: {resp.text[:150]}"
+                logger.warning("[ModelRunner] Gemini error: %s", last_error)
                 continue
 
             # Success — parse response
             data = resp.json()
             text = data["candidates"][0]["content"]["parts"][0]["text"].strip()
-            logger.info("[ModelRunner] Gemini (%s) raw response: %s", model_name, text)
+            logger.info("[ModelRunner] Gemini raw response: %s", text)
 
             # Strip markdown code fences if present
             if "```" in text:
@@ -173,7 +169,7 @@ Respond ONLY with a valid JSON object in this exact format (no markdown, no expl
             confidence = float(result.get("confidence", 0.75))
             reason = str(result.get("reason", ""))
 
-            logger.info("[ModelRunner] Gemini decision (model=%s): is_fake=%s confidence=%.2f", model_name, is_fake, confidence)
+            logger.info("[ModelRunner] Gemini decision: is_fake=%s confidence=%.2f", is_fake, confidence)
             return {
                 "risk_level": "high" if is_fake else "low",
                 "confidence_score": round(confidence, 2),
@@ -185,15 +181,14 @@ Respond ONLY with a valid JSON object in this exact format (no markdown, no expl
         except ModelUnavailableError:
             raise
         except json.JSONDecodeError as e:
-            last_error = f"Non-JSON response from {model_name}: {e}"
+            last_error = f"Non-JSON response from endpoint: {e}"
             logger.warning("[ModelRunner] %s", last_error)
             continue
         except httpx.RequestError as e:
             raise ModelUnavailableError(f"Network error connecting to Gemini API: {e}")
 
     raise ModelUnavailableError(
-        f"All Gemini models failed. Last error: {last_error}. "
-        f"Tried: {', '.join(GEMINI_MODELS)}"
+        f"All Gemini API endpoints failed. Last error: {last_error}."
     )
 
 
