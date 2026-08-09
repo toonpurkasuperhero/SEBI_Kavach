@@ -48,7 +48,7 @@ const InvestorDashboard = () => {
         const formData = new FormData();
         formData.append('file', selectedFile);
 
-        const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000';
+        const backendUrl = (import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000').replace(/\/+$/, '');
 
         let fetchSuccess = false;
         try {
@@ -105,7 +105,7 @@ const InvestorDashboard = () => {
       } else if (activeTab === 'link') {
         if (!inputValue) return;
         setTier1Status('🔗 Tier-1: Domain reputation & pHash link check...');
-        const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000';
+        const backendUrl = (import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000').replace(/\/+$/, '');
         const response = await fetch(`${backendUrl}/api/v1/verify/`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -123,7 +123,7 @@ const InvestorDashboard = () => {
       } else {
         if (!inputValue) return;
         setTier1Status('📝 Tier-1: Text phishing & urgency pattern scan...');
-        const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000';
+        const backendUrl = (import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000').replace(/\/+$/, '');
         const response = await fetch(`${backendUrl}/api/v1/detect/`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },

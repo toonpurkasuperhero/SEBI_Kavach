@@ -45,7 +45,7 @@ const AccountSettings = () => {
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000';
+  const backendUrl = (import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000').replace(/\/+$/, '');
 
   // Countdown timer for link code
   useEffect(() => {
