@@ -11,8 +11,15 @@ try:
     from model_runner import analyze_text_phishing, analyze_audio_clip, analyze_image_frame
     from phash_registry import phash_registry
 except ImportError:
-    from backend.model_runner import analyze_text_phishing, analyze_audio_clip, analyze_image_frame
-    from backend.phash_registry import phash_registry
+    try:
+        from backend.model_runner import analyze_text_phishing, analyze_audio_clip, analyze_image_frame
+        from backend.phash_registry import phash_registry
+    except ImportError:
+        import sys
+        from pathlib import Path
+        sys.path.append(str(Path(__file__).parent.parent.parent.resolve()))
+        from model_runner import analyze_text_phishing, analyze_audio_clip, analyze_image_frame
+        from phash_registry import phash_registry
 
 logger = logging.getLogger("DetectNet")
 

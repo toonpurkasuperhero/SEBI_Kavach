@@ -24,7 +24,13 @@ from pydantic import BaseModel
 try:
     from api.routes.auth import get_current_user, UserProfile, get_supabase
 except ImportError:
-    from backend.api.routes.auth import get_current_user, UserProfile, get_supabase
+    try:
+        from backend.api.routes.auth import get_current_user, UserProfile, get_supabase
+    except ImportError:
+        import sys
+        from pathlib import Path
+        sys.path.append(str(Path(__file__).parent.parent.parent.resolve()))
+        from api.routes.auth import get_current_user, UserProfile, get_supabase
 
 logger = logging.getLogger("TelegramLink")
 

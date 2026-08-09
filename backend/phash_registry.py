@@ -15,9 +15,9 @@ class PHashRegistry:
         """Seed registry with sample official circular/announcement hashes."""
         # Seed placeholder hashes for NSE Official Circulars and SEBI Press Releases
         self.registry.append({
-            "hash": imagehash.hex_to_hash("a1b2c3d4e5f60718"),
-            "signer": "SEBI Official Press Bureau",
-            "title": "SEBI Master Circular on Cyber Security 2026",
+            "hash": imagehash.hex_to_hash("acd5d57d2980c69c"),
+            "signer": "SEBI Official Communications Bureau",
+            "title": "SEBI Official Advisory Notice 2026",
             "timestamp": "2026-08-01T10:00:00Z"
         })
         self.registry.append({

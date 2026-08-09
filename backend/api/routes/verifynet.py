@@ -6,7 +6,13 @@ from typing import Optional
 try:
     from phash_registry import phash_registry
 except ImportError:
-    from backend.phash_registry import phash_registry
+    try:
+        from backend.phash_registry import phash_registry
+    except ImportError:
+        import sys
+        from pathlib import Path
+        sys.path.append(str(Path(__file__).parent.parent.parent.resolve()))
+        from phash_registry import phash_registry
 
 router = APIRouter(prefix="/verify", tags=["VerifyNet"])
 

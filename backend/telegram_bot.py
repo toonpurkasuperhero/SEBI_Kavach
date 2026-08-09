@@ -32,8 +32,15 @@ try:
     from phash_registry import phash_registry
     from model_runner import analyze_image_frame, analyze_audio_clip, analyze_text_phishing
 except ImportError:
-    from backend.phash_registry import phash_registry
-    from backend.model_runner import analyze_image_frame, analyze_audio_clip, analyze_text_phishing
+    try:
+        from backend.phash_registry import phash_registry
+        from backend.model_runner import analyze_image_frame, analyze_audio_clip, analyze_text_phishing
+    except ImportError:
+        import sys
+        from pathlib import Path
+        sys.path.append(str(Path(__file__).parent.resolve()))
+        from phash_registry import phash_registry
+        from model_runner import analyze_image_frame, analyze_audio_clip, analyze_text_phishing
 
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "").strip()
 

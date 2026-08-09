@@ -9,7 +9,13 @@ logger = logging.getLogger("Main")
 try:
     from api.routes import verifynet, detectnet, shieldtrain, report, auth, telegram_link
 except ImportError:
-    from backend.api.routes import verifynet, detectnet, shieldtrain, report, auth, telegram_link
+    try:
+        from backend.api.routes import verifynet, detectnet, shieldtrain, report, auth, telegram_link
+    except ImportError:
+        import sys
+        from pathlib import Path
+        sys.path.append(str(Path(__file__).parent.resolve()))
+        from api.routes import verifynet, detectnet, shieldtrain, report, auth, telegram_link
 
 FRONTEND_URL = os.getenv("FRONTEND_URL", "*")
 
