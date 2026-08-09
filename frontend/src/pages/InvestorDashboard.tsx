@@ -42,13 +42,15 @@ const InvestorDashboard = () => {
 
       if (activeTab === 'upload' && selectedFile) {
         // ------ REAL FILE UPLOAD TO BACKEND AI MODEL ------
-        setTier1Status('🧠 Tier-2: Running Hugging Face Vision/Audio Transformer...');
+        // NOTE: Results are based entirely on AI content analysis, NOT the filename.
+        setTier1Status('🧠 Running HuggingFace Vision/Audio Transformer on file content...');
 
         const formData = new FormData();
         formData.append('file', selectedFile);
 
         const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000';
 
+        let fetchSuccess = false;
         try {
           console.log('[SEBI Kavach] Uploading to:', `${backendUrl}/api/v1/detect/upload`);
           const response = await fetch(`${backendUrl}/api/v1/detect/upload`, {
@@ -61,6 +63,7 @@ const InvestorDashboard = () => {
           if (response.ok) {
             const data = await response.json();
             console.log('[SEBI Kavach] Backend result:', data);
+            fetchSuccess = true;
             setVerdict({
               status: data.risk_level === 'high' ? 'high-risk' : data.risk_level === 'medium' ? 'flagged' : 'verified',
               explanation: data.explanation,
@@ -72,39 +75,31 @@ const InvestorDashboard = () => {
           } else {
             const errText = await response.text();
             console.error('[SEBI Kavach] Backend error response:', errText);
+            setVerdict({
+              status: 'unverified',
+              explanation: `⚠️ BACKEND ERROR: The AI model returned an error (HTTP ${response.status}). The file could not be analyzed. Please check that:\n• VITE_BACKEND_URL is set correctly in your Vercel environment variables\n• The Railway backend is online and healthy\n• HF_API_TOKEN is configured in Railway\n\nError details: ${errText.slice(0, 200)}`,
+              confidenceScore: 0,
+              correlatedFlags: ['Backend returned an error — no AI analysis was performed'],
+              contentId: selectedFile.name,
+            });
+            return;
           }
         } catch (fetchErr) {
           console.error('[SEBI Kavach] Fetch failed (backend unreachable?):', fetchErr);
-          // Backend not running — fallback to smart filename heuristics
-        }
-
-        // Fallback: filename heuristic (for demo if backend not running)
-        const fname = selectedFile.name.toLowerCase();
-        if (['fake', 'tampered', 'deepfake', 'scam', 'synthetic', 'cloned', 'spoof', 'phish', 'cheat', 'ai'].some(kw => fname.includes(kw))) {
-          setVerdict({
-            status: 'high-risk',
-            explanation: 'NAKLI / SCAM ALERT: Visual/Audio AI artifacts detected — synthetic boundary distortion, inconsistent facial spatial frequencies, or vocoder pitch mismatch (94% synthetic confidence).',
-            confidenceScore: 0.94,
-            correlatedFlags: ['AI Deepfake Artifacts Detected', 'pHash does not match any official SEBI/NSE registry entry'],
-            contentId: selectedFile.name,
-          });
-        } else if (['real', 'authentic', 'official', 'sebi', 'nse'].some(kw => fname.includes(kw))) {
-          setVerdict({
-            status: 'verified',
-            explanation: 'ASLI / VERIFIED: Content matched in pHash Registry or cryptographic signature valid. Document certified genuine from an official SEBI/NSE registered entity.',
-            confidenceScore: 0.99,
-            signer: 'SEBI Official Press Bureau',
-            timestamp: new Date().toISOString(),
-            contentId: selectedFile.name,
-          });
-        } else {
-          setVerdict({
-            status: 'unverified',
-            explanation: 'CHECK CAREFULLY (UNREGISTERED ORIGIN): No cryptographic signature or registered pHash match found. AI scan shows no obvious face-cloning, but origin is unverified.',
-            confidenceScore: 0.68,
-            correlatedFlags: ['Unregistered origin — verify on official sebi.gov.in website before trading'],
-            contentId: selectedFile.name,
-          });
+          if (!fetchSuccess) {
+            setVerdict({
+              status: 'unverified',
+              explanation: `⚠️ BACKEND UNREACHABLE: Could not connect to the AI analysis server at:\n${backendUrl}\n\nThis means NO analysis was performed on your file. The result is NOT based on the file content.\n\nTo fix this:\n1. If running locally: start the backend with "uvicorn main:app --reload" in the /backend folder\n2. If deployed on Vercel: set VITE_BACKEND_URL=https://your-railway-app.up.railway.app in Vercel environment variables`,
+              confidenceScore: 0,
+              correlatedFlags: [
+                'Backend server is unreachable — file was NOT analyzed',
+                `Attempted URL: ${backendUrl}/api/v1/detect/upload`,
+                'Set VITE_BACKEND_URL in Vercel environment variables to your Railway URL',
+              ],
+              contentId: selectedFile.name,
+            });
+            return;
+          }
         }
 
       } else if (activeTab === 'link') {

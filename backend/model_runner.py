@@ -156,15 +156,15 @@ def analyze_image_frame(image_input: Image.Image) -> Dict[str, Any]:
         except (KeyError, TypeError, ValueError) as exc:
             logger.error("[ModelRunner] Unexpected image API response format: %s | data=%s", exc, results)
 
-    # Graceful fallback — return safe default
+    # Fallback when HF API token is missing or call failed
     return {
-        "risk_level": "low",
-        "confidence_score": 0.85,
+        "risk_level": "medium",
+        "confidence_score": 0.50,
         "is_synthetic": False,
-        "label": "REAL",
+        "label": "UNCHECKED",
         "explanation": (
-            "Image scan completed via spatial heuristics (AI model temporarily unavailable). "
-            "No obvious synthetic boundary artifacts detected."
+            "⚠️ HF AI Model Call Failed or HF_API_TOKEN missing. "
+            "Please ensure HF_API_TOKEN is configured in backend .env or Railway environment variables."
         ),
     }
 
