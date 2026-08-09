@@ -38,11 +38,12 @@ GEMINI_API_KEY: str = os.getenv("GEMINI_API_KEY", "").strip()
 HF_API_TOKEN: str = os.getenv("HF_API_TOKEN", "").strip()
 
 GEMINI_API_BASE = "https://generativelanguage.googleapis.com/v1beta/models"
-# Try models in order of preference
+# Standard valid Gemini endpoint model identifiers
 GEMINI_MODELS = [
-    "gemini-2.0-flash",
-    "gemini-1.5-flash-latest",
-    "gemini-1.5-flash-8b",
+    "gemini-1.5-flash",
+    "gemini-1.5-pro",
+    "gemini-2.0-flash-exp",
+    "gemini-1.5-flash-8b-latest",
 ]
 HF_API_BASE = "https://api-inference.huggingface.co/models"
 IMAGE_MODEL = "dima806/deepfake_vs_real_image_detection"
