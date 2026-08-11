@@ -53,7 +53,7 @@ AUDIO_MODEL = "mo-thecreator/Deepfake-audio-detection"
 REQUEST_TIMEOUT = 35
 HF_RETRY_WAIT = 15
 
-
+logger.info("GEMINI_API_KEY set=%s HF_API_TOKEN set=%s", bool(GEMINI_API_KEY), bool(HF_API_TOKEN))
 # ---------------------------------------------------------------------------
 # 1. Gemini Vision — REST API Call
 # ---------------------------------------------------------------------------
