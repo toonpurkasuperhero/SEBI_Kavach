@@ -438,6 +438,16 @@ async def start_telegram_bot_async():
             await app.start()
             await app.updater.start_polling()
         except Exception as exc:
+            try:
+                from telegram.error import Conflict
+                if isinstance(exc, Conflict) or isinstance(getattr(exc, '__cause__', None), Conflict):
+                    logger.warning(
+                        "[Telegram Bot] Polling conflict: another bot instance or webhook is active; polling will not continue. %s",
+                        exc,
+                    )
+                    return
+            except ImportError:
+                pass
             logger.error("[Telegram Bot] Async start error: %s", exc)
     else:
         logger.info("[Telegram Bot] Bot async start skipped (missing TELEGRAM_BOT_TOKEN).")
