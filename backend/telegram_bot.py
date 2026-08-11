@@ -429,6 +429,21 @@ def start_telegram_bot_polling():
         logger.info("[Telegram Bot] Bot polling skipped (missing TELEGRAM_BOT_TOKEN).")
 
 
+def _telegram_polling_error_callback(error):
+    try:
+        from telegram.error import Conflict
+        if isinstance(error, Conflict):
+            logger.warning(
+                "[Telegram Bot] Polling conflict: another bot instance or webhook is active; polling will not continue. %s",
+                error,
+            )
+            return
+    except Exception:
+        pass
+
+    logger.error("[Telegram Bot] Telegram polling error: %s", error)
+
+
 async def start_telegram_bot_async():
     app = create_telegram_bot_app()
     if app:
@@ -436,13 +451,16 @@ async def start_telegram_bot_async():
             logger.info("[Telegram Bot] Initializing and starting async bot polling...")
             await app.initialize()
             await app.start()
-            await app.updater.start_polling()
+            await app.updater.start_polling(
+                error_callback=_telegram_polling_error_callback,
+                bootstrap_retries=-1,
+            )
         except Exception as exc:
             try:
                 from telegram.error import Conflict
                 if isinstance(exc, Conflict) or isinstance(getattr(exc, '__cause__', None), Conflict):
                     logger.warning(
-                        "[Telegram Bot] Polling conflict: another bot instance or webhook is active; polling will not continue. %s",
+                        "[Telegram Bot] Polling conflict: another bot instance or webhook is active; async polling not started. %s",
                         exc,
                     )
                     return
