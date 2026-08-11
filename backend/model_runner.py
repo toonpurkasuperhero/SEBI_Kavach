@@ -39,11 +39,13 @@ GEMINI_API_KEY: str = os.getenv("GEMINI_API_KEY", "").strip()
 HF_API_TOKEN: str = os.getenv("HF_API_TOKEN", "").strip()
 
 # Gemini REST Endpoints (Google Generative AI API v1beta & v1)
+# gemini-1.5-flash/pro are not available on these generateContent endpoints in some API versions.
+# The current valid model names are typically plain gemini-1.5 or gemini-1.5-bison.
 GEMINI_ENDPOINTS = [
-    "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent",
-    "https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent",
-    "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent",
-    "https://generativelanguage.googleapis.com/v1/models/gemini-1.5-pro:generateContent",
+    "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5:generateContent",
+    "https://generativelanguage.googleapis.com/v1/models/gemini-1.5:generateContent",
+    "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-bison:generateContent",
+    "https://generativelanguage.googleapis.com/v1/models/gemini-1.5-bison:generateContent",
 ]
 
 HF_API_BASE = "https://api-inference.huggingface.co/models"
@@ -163,6 +165,10 @@ Respond ONLY with a valid JSON object in this exact format (no markdown, no surr
                 "explanation": f"Google Gemini Vision Scan: {reason}",
             }
 
+        except httpx.RequestError as exc:
+            last_error = f"RequestError: {exc}"
+            logger.warning("[ModelRunner] Gemini request failed on %s: %s", endpoint_url, last_error)
+            continue
         except Exception as exc:
             last_error = str(exc)
             logger.warning("[ModelRunner] Gemini request failed on %s: %s", endpoint_url, exc)
@@ -184,8 +190,15 @@ def _hf_post(model_id: str, data: bytes, content_type: str) -> Optional[list]:
             resp = client.post(url, headers=headers, content=data)
         if resp.status_code == 200:
             return resp.json()
-    except Exception as e:
-        logger.warning("[ModelRunner] HF request failed: %s", e)
+        logger.warning(
+            "[ModelRunner] HuggingFace request failed (%s): %s",
+            resp.status_code,
+            resp.text[:300].replace("\n", " "),
+        )
+    except httpx.RequestError as exc:
+        logger.warning("[ModelRunner] HuggingFace network error: %s", exc)
+    except Exception as exc:
+        logger.warning("[ModelRunner] HuggingFace request error: %s", exc)
     return None
 
 
@@ -317,6 +330,9 @@ def analyze_image_frame(image_input: Image.Image) -> Dict[str, Any]:
                     "label": "FAKE" if is_fake else "REAL",
                     "explanation": f"HuggingFace Vision Scan (dima806): {'SYNTHETIC / DEEPFAKE' if is_fake else 'AUTHENTIC REAL'} ({conf*100:.0f}% confidence).",
                 }
+            logger.warning("[ModelRunner] HuggingFace scan returned no valid labels; falling back.")
+        except httpx.RequestError as hf_exc:
+            logger.warning("[ModelRunner] HuggingFace network error: %s", hf_exc)
         except Exception as hf_exc:
             logger.warning("[ModelRunner] HuggingFace scan error (%s), falling back...", hf_exc)
 

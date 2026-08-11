@@ -57,6 +57,16 @@ async def on_startup():
 def read_root():
     return {"message": "Welcome to SEBI Kavach API. Visit /docs for API documentation."}
 
+@app.get("/debug/env")
+def debug_env():
+    return {
+        "GEMINI_API_KEY_present": bool(os.getenv("GEMINI_API_KEY")),
+        "HF_API_TOKEN_present": bool(os.getenv("HF_API_TOKEN")),
+        "TELEGRAM_BOT_TOKEN_present": bool(os.getenv("TELEGRAM_BOT_TOKEN")),
+        "BACKEND_BASE_URL": os.getenv("BACKEND_BASE_URL", ""),
+        "FRONTEND_URL": os.getenv("FRONTEND_URL", ""),
+    }
+
 @app.get("/health")
 def health_check():
     return {"status": "ok"}
